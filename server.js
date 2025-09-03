@@ -4,125 +4,141 @@ const PORT = 3100;
 
 app.use(express.json());
 
-let filmList = [
-    {filmId: 1, name: 'Inception', creator: 'Christopher Nolan', release: 2010},
-    {filmId: 2, name: 'The Matrix', creator: 'The Wachowskis', release: 1999},
-    {filmId: 3, name: 'Interstellar', creator: 'Christopher Nolan', release: 2014},
+let movieList = [
+    {movieId: 1, title: 'Inception', director: 'Christopher Nolan', release: 2010},
+    {movieId: 2, title: 'The Matrix', director: 'The Wachowskis', release: 1999},
+    {movieId: 3, title: 'Interstellar', director: 'Christopher Nolan', release: 2014},
 ];
 
-let creatorList = [
-    {creatorId: 1, fullname: 'Christopher Nolan'},
-    {creatorId: 2, fullname: 'The Wachowskis'}
+let directorList = [
+    {directorId: 1, fullname: 'Christopher Nolan', birthYear: 1970},
+    {directorId: 2, fullname: 'The Wachowskis', birthYear: 1965}
 ];
 
 // Home endpoint
 app.get('/home', (req, res) => {
-    res.send('Selamat datang di layanan data film!');
+    res.send('Selamat datang di layanan data movie!');
 });
 
-// Ambil semua film
-app.get('/film', (req, res) => {
-    res.json(filmList);
+app.get('/', (req, res) => {
+    res.send('Selamat datang di API Zami! Gunakan endpoint /home, /movies, atau /directors.');
 });
 
-// Cari film berdasarkan id
-app.get('/film/id/:filmId', (req, res) => {
-    const id = Number(req.params.filmId);
-    const found = filmList.filter(f => f.filmId === id);
-    if (found.length === 0) {
-        return res.status(404).send('Film tidak ditemukan!');
-    }
-    res.json(found[0]);
+// Ambil semua movie
+app.get('/movies', (req, res) => {
+    res.json(movieList);
 });
 
-// Cari film berdasarkan nama
-app.get('/film/name/:name', (req, res) => {
-    const searchName = req.params.name.toLowerCase();
-    const result = filmList.find(f => f.name.toLowerCase() === searchName);
-    if (!result) {
-        return res.status(404).send('Film dengan nama tersebut tidak ada.');
-    }
-    res.json(result);
-});
-
-// Cari film berdasarkan creator
-app.get('/film/creator/:creator', (req, res) => {
-    const searchCreator = req.params.creator.toLowerCase();
-    const result = filmList.filter(f => f.creator.toLowerCase() === searchCreator);
-    if (result.length === 0) {
-        return res.status(404).send('Film dengan creator tersebut tidak ditemukan.');
-    }
-    res.json(result);
-});
-
-// CRUD creator
-
-// Ambil semua creator
-app.get('/creator', (req, res) => {
-    res.json(creatorList);
-});
-
-// Ambil creator berdasarkan id
-app.get('/creator/id/:creatorId', (req, res) => {
-    const id = Number(req.params.creatorId);
-    const found = creatorList.find(c => c.creatorId === id);
+// Cari movie berdasarkan id
+app.get('/movies/id/:movieId', (req, res) => {
+    const id = Number(req.params.movieId);
+    const found = movieList.find(m => m.movieId === id);
     if (!found) {
-        return res.status(404).send('Creator tidak ditemukan!');
+        return res.status(404).send('Movie tidak ditemukan!');
     }
     res.json(found);
 });
 
-// Tambah creator
-app.post('/creator', (req, res) => {
-    const { fullname } = req.body;
-    if (!fullname) {
-        return res.status(400).send('Field fullname wajib diisi.');
+// Cari movie berdasarkan title
+app.get('/movies/title/:title', (req, res) => {
+    const searchTitle = req.params.title.toLowerCase();
+    const result = movieList.find(m => m.title.toLowerCase() === searchTitle);
+    if (!result) {
+        return res.status(404).send('Movie dengan title tersebut tidak ada.');
     }
-    const newCreator = { creatorId: Date.now(), fullname };
-    creatorList.push(newCreator);
-    res.status(201).json(newCreator);
+    res.json(result);
 });
 
-// Update creator
-app.put('/creator/id/:creatorId', (req, res) => {
-    const id = Number(req.params.creatorId);
-    const creator = creatorList.find(c => c.creatorId === id);
-    if (!creator) {
-        return res.status(404).send('Creator tidak ditemukan!');
+// Cari movie berdasarkan director
+app.get('/movies/director/:director', (req, res) => {
+    const searchDirector = req.params.director.toLowerCase();
+    const result = movieList.filter(m => m.director.toLowerCase() === searchDirector);
+    if (result.length === 0) {
+        return res.status(404).send('Movie dengan director tersebut tidak ditemukan.');
     }
-    const { fullname } = req.body;
-    if (!fullname) {
-        return res.status(400).send('Field fullname wajib diisi.');
-    }
-    creator.fullname = fullname;
-    res.json(creator);
+    res.json(result);
 });
 
-// Hapus creator
-app.delete('/creator/id/:creatorId', (req, res) => {
-    const id = Number(req.params.creatorId);
-    const idx = creatorList.findIndex(c => c.creatorId === id);
+// Tambah movie
+app.post('/movies', (req, res) => {
+    const { title, director, release } = req.body;
+    if (!title || !director || !release) {
+        return res.status(400).send('Semua field (title, director, release) wajib diisi.');
+    }
+    const newMovie = {
+        movieId: Date.now(),
+        title,
+        director,
+        release: Number(release)
+    };
+    movieList.push(newMovie);
+    res.status(201).json(newMovie);
+});
+
+// Hapus movie
+app.delete('/movies/id/:movieId', (req, res) => {
+    const id = Number(req.params.movieId);
+    const idx = movieList.findIndex(m => m.movieId === id);
     if (idx === -1) {
-        return res.status(404).send('Creator tidak ditemukan!');
+        return res.status(404).send('Movie tidak ditemukan!');
     }
-    const removed = creatorList.splice(idx, 1);
+    const removed = movieList.splice(idx, 1);
     res.json(removed[0]);
 });
 
-// Tambah film
-app.post('/film', (req, res) => {
-    const { name, creator, release } = req.body;
-    if (!name || !creator || !release) {
-        return res.status(400).send('Semua field (name, creator, release) wajib diisi.');
+// CRUD director
+
+// Ambil semua director
+app.get('/directors', (req, res) => {
+    res.json(directorList);
+});
+
+// Ambil director berdasarkan id
+app.get('/directors/id/:directorId', (req, res) => {
+    const id = Number(req.params.directorId);
+    const found = directorList.find(d => d.directorId === id);
+    if (!found) {
+        return res.status(404).send('Director tidak ditemukan!');
     }
-    const newFilm = {
-        filmId: Date.now(),
-        name,
-        creator,
-        release: Number(release)
-    };
-    filmList.push(newFilm);
-    res.status(201).json(newFilm);
+    res.json(found);
+});
+
+// Tambah director
+app.post('/directors', (req, res) => {
+    const { fullname, birthYear } = req.body;
+    if (!fullname || !birthYear) {
+        return res.status(400).send('Field fullname dan birthYear wajib diisi.');
+    }
+    const newDirector = { directorId: Date.now(), fullname, birthYear: Number(birthYear) };
+    directorList.push(newDirector);
+    res.status(201).json(newDirector);
+});
+
+// Update director
+app.put('/directors/id/:directorId', (req, res) => {
+    const id = Number(req.params.directorId);
+    const director = directorList.find(d => d.directorId === id);
+    if (!director) {
+        return res.status(404).send('Director tidak ditemukan!');
+    }
+    const { fullname, birthYear } = req.body;
+    if (!fullname || !birthYear) {
+        return res.status(400).send('Field fullname dan birthYear wajib diisi.');
+    }
+    director.fullname = fullname;
+    director.birthYear = Number(birthYear);
+    res.json(director);
+});
+
+// Hapus director
+app.delete('/directors/id/:directorId', (req, res) => {
+    const id = Number(req.params.directorId);
+    const idx = directorList.findIndex(d => d.directorId === id);
+    if (idx === -1) {
+        return res.status(404).send('Director tidak ditemukan!');
+    }
+    const removed = directorList.splice(idx, 1);
+    res.json(removed[0]);
 });
 
 app.listen(PORT, () => {
