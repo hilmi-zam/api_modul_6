@@ -81,13 +81,3 @@ Content-Type: application/json
   "birthYear": 1970
 }
 ```
-
-## Kontributor
-
-- hilmi-zam
-- damput-temp
-
----
-
-> Dibuat untuk pembelajaran Node.js & Express REST API.
-
