@@ -1,147 +1,189 @@
+require('dotenv').config();
 const express = require('express');
-const app = express();
-const PORT = 3100;
+const cors = require('cors');
+const db = require('./database.js');
 
+const app = express();
+const PORT = process.env.PORT || 3200;
+
+app.use(cors());
 app.use(express.json());
 
-let movieList = [
-    {movieId: 1, title: 'Inception', director: 'Christopher Nolan', release: 2010},
-    {movieId: 2, title: 'The Matrix', director: 'The Wachowskis', release: 1999},
-    {movieId: 3, title: 'Interstellar', director: 'Christopher Nolan', release: 2014},
-];
-
-let directorList = [
-    {directorId: 1, fullname: 'Christopher Nolan', birthYear: 1970},
-    {directorId: 2, fullname: 'The Wachowskis', birthYear: 1965}
-];
-
-// Home endpoint
-app.get('/home', (req, res) => {
-    res.send('Selamat datang di layanan data movie!');
+// Status endpoint
+app.get('/status', (req, res) => {
+  res.json({ ok: true, service: 'film-api' });
 });
 
-app.get('/', (req, res) => {
-    res.send('Selamat datang di API Zami! Gunakan endpoint /home, /movies, atau /directors.');
-});
-
-// Ambil semua movie
+// Get all movies
 app.get('/movies', (req, res) => {
-    res.json(movieList);
-});
-
-// Cari movie berdasarkan id
-app.get('/movies/id/:movieId', (req, res) => {
-    const id = Number(req.params.movieId);
-    const found = movieList.find(m => m.movieId === id);
-    if (!found) {
-        return res.status(404).send('Movie tidak ditemukan!');
+  const sql = "SELECT * FROM movies ORDER BY id ASC";
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    res.json(found);
+    res.json(rows);
+  });
 });
 
-// Cari movie berdasarkan title
-app.get('/movies/title/:title', (req, res) => {
-    const searchTitle = req.params.title.toLowerCase();
-    const result = movieList.find(m => m.title.toLowerCase() === searchTitle);
-    if (!result) {
-        return res.status(404).send('Movie dengan title tersebut tidak ada.');
+// Get movie by ID
+app.get('/movies/:id', (req, res) => {
+  const sql = "SELECT * FROM movies WHERE id = ?";
+  db.get(sql, [req.params.id], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    res.json(result);
-});
-
-// Cari movie berdasarkan director
-app.get('/movies/director/:director', (req, res) => {
-    const searchDirector = req.params.director.toLowerCase();
-    const result = movieList.filter(m => m.director.toLowerCase() === searchDirector);
-    if (result.length === 0) {
-        return res.status(404).send('Movie dengan director tersebut tidak ditemukan.');
+    if (!row) {
+      return res.status(404).json({ error: 'Film tidak ditemukan' });
     }
-    res.json(result);
+    res.json(row);
+  });
 });
 
-// Tambah movie
+// Add new movie
 app.post('/movies', (req, res) => {
-    const { title, director, release } = req.body;
-    if (!title || !director || !release) {
-        return res.status(400).send('Semua field (title, director, release) wajib diisi.');
+  const { title, director, year } = req.body;
+
+  if (!title || !director || !year) {
+    return res.status(400).json({ error: 'title, director, year wajib diisi' });
+  }
+
+  const sql = "INSERT INTO movies (title, director, year) VALUES (?,?,?)";
+  db.run(sql, [title, director, year], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    const newMovie = {
-        movieId: Date.now(),
-        title,
-        director,
-        release: Number(release)
-    };
-    movieList.push(newMovie);
-    res.status(201).json(newMovie);
+    res.status(201).json({
+      id: this.lastID,
+      title,
+      director,
+      year,
+    });
+  });
 });
 
-// Hapus movie
-app.delete('/movies/id/:movieId', (req, res) => {
-    const id = Number(req.params.movieId);
-    const idx = movieList.findIndex(m => m.movieId === id);
-    if (idx === -1) {
-        return res.status(404).send('Movie tidak ditemukan!');
+// Update movie
+app.put('/movies/:id', (req, res) => {
+  const { title, director, year } = req.body;
+  const sql = "UPDATE movies SET title = ?, director = ?, year = ? WHERE id = ?";
+
+  db.run(sql, [title, director, year, req.params.id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    const removed = movieList.splice(idx, 1);
-    res.json(removed[0]);
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Film tidak ditemukan' });
+    }
+    res.json({
+      id: Number(req.params.id),
+      title,
+      director,
+      year,
+    });
+  });
 });
 
-// CRUD director
+// Delete movie
+app.delete('/movies/:id', (req, res) => {
+  const sql = "DELETE FROM movies WHERE id = ?";
+  db.run(sql, [req.params.id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Film tidak ditemukan' });
+    }
+    res.status(204).send();
+  });
+});
 
-// Ambil semua director
+// Get all directors
 app.get('/directors', (req, res) => {
-    res.json(directorList);
-});
-
-// Ambil director berdasarkan id
-app.get('/directors/id/:directorId', (req, res) => {
-    const id = Number(req.params.directorId);
-    const found = directorList.find(d => d.directorId === id);
-    if (!found) {
-        return res.status(404).send('Director tidak ditemukan!');
+  const sql = "SELECT * FROM directors ORDER BY id ASC";
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    res.json(found);
+    res.json(rows);
+  });
 });
 
-// Tambah director
+// Get director by ID
+app.get('/directors/:id', (req, res) => {
+  const sql = "SELECT * FROM directors WHERE id = ?";
+  db.get(sql, [req.params.id], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (!row) {
+      return res.status(404).json({ error: 'Sutradara tidak ditemukan' });
+    }
+    res.json(row);
+  });
+});
+
+// Add new director
 app.post('/directors', (req, res) => {
-    const { fullname, birthYear } = req.body;
-    if (!fullname || !birthYear) {
-        return res.status(400).send('Field fullname dan birthYear wajib diisi.');
+  const { name, nationality, birth_year } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'name wajib diisi' });
+  }
+
+  const sql = "INSERT INTO directors (name, nationality, birth_year) VALUES (?,?,?)";
+  db.run(sql, [name, nationality, birth_year], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    const newDirector = { directorId: Date.now(), fullname, birthYear: Number(birthYear) };
-    directorList.push(newDirector);
-    res.status(201).json(newDirector);
+    res.status(201).json({
+      id: this.lastID,
+      name,
+      nationality,
+      birth_year,
+    });
+  });
 });
 
 // Update director
-app.put('/directors/id/:directorId', (req, res) => {
-    const id = Number(req.params.directorId);
-    const director = directorList.find(d => d.directorId === id);
-    if (!director) {
-        return res.status(404).send('Director tidak ditemukan!');
+app.put('/directors/:id', (req, res) => {
+  const { name, nationality, birth_year } = req.body;
+  const sql = "UPDATE directors SET name = ?, nationality = ?, birth_year = ? WHERE id = ?";
+
+  db.run(sql, [name, nationality, birth_year, req.params.id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    const { fullname, birthYear } = req.body;
-    if (!fullname || !birthYear) {
-        return res.status(400).send('Field fullname dan birthYear wajib diisi.');
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Sutradara tidak ditemukan' });
     }
-    director.fullname = fullname;
-    director.birthYear = Number(birthYear);
-    res.json(director);
+    res.json({
+      id: Number(req.params.id),
+      name,
+      nationality,
+      birth_year,
+    });
+  });
 });
 
-// Hapus director
-app.delete('/directors/id/:directorId', (req, res) => {
-    const id = Number(req.params.directorId);
-    const idx = directorList.findIndex(d => d.directorId === id);
-    if (idx === -1) {
-        return res.status(404).send('Director tidak ditemukan!');
+// Delete director
+app.delete('/directors/:id', (req, res) => {
+  const sql = "DELETE FROM directors WHERE id = ?";
+  db.run(sql, [req.params.id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
     }
-    const removed = directorList.splice(idx, 1);
-    res.json(removed[0]);
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Sutradara tidak ditemukan' });
+    }
+    res.status(204).send();
+  });
 });
 
+// Catch-all route (404)
+app.use((req, res) => {
+  res.status(404).json({ error: 'Rute tidak ditemukan' });
+});
+
+// Start server
 app.listen(PORT, () => {
-    console.log(`API berjalan di http://localhost:${PORT}`);
+  console.log(`Server aktif di http://localhost:${PORT}`);
 });
-
