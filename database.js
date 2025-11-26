@@ -77,7 +77,8 @@ const db = new sqlite3.Database(DB_SOURCE, (err) => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user'
       )`,
       (err) => {
         if (err) {
@@ -168,14 +169,14 @@ db.createDirector = function (director, callback) {
 
 // Users
 db.createUser = function (user, callback) {
-  const { username, email, password } = user;
+  const { username, email, password, role = 'user' } = user;
   const hashed = bcrypt.hashSync(password, 10);
   db.run(
-    `INSERT INTO users (username, email, password) VALUES (?,?,?)`,
-    [username, email, hashed],
+    `INSERT INTO users (username, email, password, role) VALUES (?,?,?,?)`,
+    [username, email, hashed, role],
     function (err) {
       if (err) return callback(err);
-      callback(null, { id: this.lastID, username, email });
+      callback(null, { id: this.lastID, username, email, role });
     },
   );
 };
@@ -189,7 +190,7 @@ db.getUserByEmail = function (email, callback) {
 };
 
 db.getAllUsers = function (callback) {
-  db.all(`SELECT id, username, email FROM users ORDER BY id ASC`, [], callback);
+  db.all(`SELECT id, username, email, role FROM users ORDER BY id ASC`, [], callback);
 };
 
 module.exports = db;

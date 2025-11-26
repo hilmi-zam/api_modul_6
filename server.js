@@ -4,6 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./database.js');
+const { authenticateToken, authorizeRole } = require('./middleware/auth.js');
 
 const app = express();
 const PORT = process.env.PORT || 3200;
@@ -12,27 +13,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_prod';
 app.use(cors());
 app.use(express.json());
 
-// Authentication middleware
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Token diperlukan' });
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Token tidak valid' });
-    req.user = user; // contains id and username
-    next();
-  });
-}
-
-// Simple authorization middleware for admin-only checks
-function authorizeAdmin(req, res, next) {
-  if (req.user && req.user.username === 'admin') return next();
-  return res.status(403).json({ error: 'Akses ditolak: hanya admin' });
-}
-
 // Login endpoint (issues JWT)
-app.post('/login', (req, res) => {
+app.post('/auth/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'username dan password wajib diisi' });
 
@@ -47,7 +29,13 @@ app.post('/login', (req, res) => {
     // Compare hashed password
     if (!bcrypt.compareSync(password, user.password)) return res.status(401).json({ error: 'Credensial tidak valid' });
 
-    const payload = { id: user.id, username: user.username, email: user.email };
+    const payload = {
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   });
@@ -111,8 +99,8 @@ app.post('/movies', authenticateToken, (req, res) => {
   });
 });
 
-// Update movie
-app.put('/movies/:id', authenticateToken, (req, res) => {
+// Update movie (admin only)
+app.put('/movies/:id', authenticateToken, authorizeRole('admin'), (req, res) => {
   const { title, director, year } = req.body;
   const sql = "UPDATE movies SET title = ?, director = ?, year = ? WHERE id = ?";
 
@@ -132,8 +120,8 @@ app.put('/movies/:id', authenticateToken, (req, res) => {
   });
 });
 
-// Delete movie
-app.delete('/movies/:id', authenticateToken, authorizeAdmin, (req, res) => {
+// Delete movie (admin only)
+app.delete('/movies/:id', authenticateToken, authorizeRole('admin'), (req, res) => {
   const sql = "DELETE FROM movies WHERE id = ?";
   db.run(sql, [req.params.id], function (err) {
     if (err) {
@@ -193,8 +181,8 @@ app.post('/directors', authenticateToken, (req, res) => {
   });
 });
 
-// Update director
-app.put('/directors/:id', authenticateToken, (req, res) => {
+// Update director (admin only)
+app.put('/directors/:id', authenticateToken, authorizeRole('admin'), (req, res) => {
   const { name, nationality, birth_year } = req.body;
   const sql = "UPDATE directors SET name = ?, nationality = ?, birth_year = ? WHERE id = ?";
 
@@ -214,8 +202,8 @@ app.put('/directors/:id', authenticateToken, (req, res) => {
   });
 });
 
-// Delete director
-app.delete('/directors/:id', authenticateToken, authorizeAdmin, (req, res) => {
+// Delete director (admin only)
+app.delete('/directors/:id', authenticateToken, authorizeRole('admin'), (req, res) => {
   const sql = "DELETE FROM directors WHERE id = ?";
   db.run(sql, [req.params.id], function (err) {
     if (err) {
@@ -246,7 +234,7 @@ app.get('/users', (req, res) => {
 });
 
 // Register new user
-app.post('/users', (req, res) => {
+app.post('/auth/register', (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'username, email dan password wajib diisi' });
@@ -261,8 +249,33 @@ app.post('/users', (req, res) => {
       if (err2) return res.status(500).json({ error: err2.message });
       if (userByEmail) return res.status(409).json({ error: 'Email sudah terdaftar' });
 
-      // Create user (password will be hashed by db.createUser)
-      db.createUser({ username, email, password }, (err3, created) => {
+      // Create user with default role 'user'
+      db.createUser({ username, email, password, role: 'user' }, (err3, created) => {
+        if (err3) return res.status(500).json({ error: err3.message });
+        res.status(201).json(created);
+      });
+    });
+  });
+});
+
+// Register new admin (for development only)
+app.post('/auth/register-admin', (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'username, email dan password wajib diisi' });
+  }
+
+  // Check username or email exists
+  db.getUserByUsername(username, (err, userByName) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (userByName) return res.status(409).json({ error: 'Username sudah terdaftar' });
+
+    db.getUserByEmail(email, (err2, userByEmail) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      if (userByEmail) return res.status(409).json({ error: 'Email sudah terdaftar' });
+
+      // Create user with role 'admin'
+      db.createUser({ username, email, password, role: 'admin' }, (err3, created) => {
         if (err3) return res.status(500).json({ error: err3.message });
         res.status(201).json(created);
       });

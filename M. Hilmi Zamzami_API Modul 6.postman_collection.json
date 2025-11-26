@@ -1,0 +1,148 @@
+{
+	"info": {
+		"_postman_id": "b68fda02-f40e-4e8c-8b3d-aa9bc9d16a4e",
+		"name": "API Modul 6",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47946765",
+		"_collection_link": "https://hilmi-zamzami-s-team.postman.co/workspace/Team-Workspace~efd701b3-374b-48b9-8cd0-858632761361/collection/47946765-b68fda02-f40e-4e8c-8b3d-aa9bc9d16a4e?action=share&source=collection_link&creator=47946765"
+	},
+	"item": [
+		{
+			"name": "Login sebagai user",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjozLCJ1c2VybmFtZSI6ImFkbWluMSIsInJvbGUiOiJhZG1pbiJ9LCJpYXQiOjE3NjQxNDI1OTIsImV4cCI6MTc2NDE0NjE5Mn0.THd4PCVUTFRk1WSgvDLFXHOtSByGj-iUBJNbTGMvWjk",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"zami\",\r\n    \"password\": \"zami123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3200/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3200",
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE sutradara sebagai user",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjoyLCJ1c2VybmFtZSI6InphbWkiLCJyb2xlIjoidXNlciJ9LCJpYXQiOjE3NjQxNDM2MjIsImV4cCI6MTc2NDE0NzIyMn0.c_-Kl4E92RLZ3W1RTvdZSq-kSqWuOxDOGZoCB3iea2c",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3200/directors/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3200",
+					"path": [
+						"directors",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login sebagai admin",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"admin1\",\r\n    \"password\": \"admin123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3200/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3200",
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE sutradara sebagai admin",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjozLCJ1c2VybmFtZSI6ImFkbWluMSIsInJvbGUiOiJhZG1pbiJ9LCJpYXQiOjE3NjQxNDM4ODAsImV4cCI6MTc2NDE0NzQ4MH0.uXjLcp44tN_2BNiP-zG0gaChrFUv5P4Hg10MUPbe5IQ",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3200/directors/3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3200",
+					"path": [
+						"directors",
+						"3"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
